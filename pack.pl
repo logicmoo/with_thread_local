@@ -1,7 +1,7 @@
 name(with_thread_local).
 title('Call a Goal with local assertions').
 
-version('0.0.7').
+version('0.0.8').
 download('https://github.com/TeamSPoon/with_thread_local/releases/*.zip').
 
 author( 'Douglas R. Miles', 'logicmoo@gmail.com' ).
