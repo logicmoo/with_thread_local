@@ -153,7 +153,7 @@ wtl(M,before_after(Before,After,How),Call,How):- !,
      (M:Before -> call(How,true,Call,M:After); Call).
 
 wtl(M,Assert,Call,setup_call_cleanup):- !,
-   wtl_how(setup_call_cleanup,clause_true(M,Assert),M:asserta(M:Assert,Ref),Call,M:erase(Ref)).
+   wtl_how(setup_call_cleanup,clause_true(M,Assert),M:asserta(Assert,Ref),Call,M:erase(Ref)).
 
 wtl(M,Assert,Call,How):- 
    wtl_how(How,clause_true(M,Assert),key_asserta(M,Assert),Call,key_erase(M)).
@@ -170,7 +170,7 @@ wtl_how(How, Test , Pre , Call, Post):-  Test -> Call ; call(How, Pre , Call, Po
 
 :- nb_setval('$w_tl_e',[]).
 
-key_asserta(M,Assert):- M:asserta(M:Assert,REF),
+key_asserta(M,Assert):- M:asserta(Assert,REF),
  (nb_current('$w_tl_e',Was)->nb_setval('$w_tl_e',[REF|Was]);nb_setval('$w_tl_e',[REF])).
 
 key_erase(M):- nb_current('$w_tl_e',[REF|Was])->nb_setval('$w_tl_e',Was)->M:erase(REF).
@@ -205,6 +205,7 @@ module_effect_striped(Call,Module,UnQCall):- strip_module(Call,Module,UnQCall).
 %
 % Converted To Thread Local Head 
 %
+to_thread_local_1m(M:M:HEAD,I,O):-!,to_thread_local_1m(M:HEAD,I,O).
 to_thread_local_1m((TL:Head :- BODY),_,(TL:Head :- BODY)):- nonvar(TL),check_thread_local_1m(TL:Head).
 to_thread_local_1m((H:-B),TL,(HH:-B)):-!,to_thread_local_1m(H,TL,HH).
 to_thread_local_1m(Head,baseKB,t_l:Head).
