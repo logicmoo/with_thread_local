@@ -32,7 +32,9 @@
         to_thread_local_1m/3,
         key_asserta/2,
         key_erase/1,
-        module_effect/3.
+        module_effect/3,
+        module_effect_ue/3.
+
 
 :- set_module(class(library)).
 
@@ -59,7 +61,7 @@ locally_hide(Fact,Cm:Call):-
 %
 %  uses each_call_cleanup/3 instead of setup_call_cleanup/3
  
-locally_hide_each(Fact,Cm:Call):-
+locally_hide_each(Fact,Cm:Call):-  
   module_effect((Fact :- !,fail),M,BareEffect) ->
     wtl(M,BareEffect,Cm:Call,Cm:each_call_cleanup).
 
@@ -89,9 +91,8 @@ locally_hide_each(Fact,Cm:Call):-
 %     assertion(current_prolog_flag(xref,true));assertion(current_prolog_flag(xref,true))),
 %     assertion(current_prolog_flag(xref,Was)),fail.
 % ===
-locally_each(Effect,Cm:Call):-
-   module_effect(Effect,M,BareEffect) ->
-     wtl(M,BareEffect,Cm:Call,Cm:each_call_cleanup).
+locally_each(Em:Effect,Cm:Call):- wtl(Em,Effect,Cm:Call,Cm:each_call_cleanup).
+
 
 %% locally( :Effect, :Call) is nondet.
 %
@@ -118,11 +119,7 @@ locally_each(Effect,Cm:Call):-
 %     assertion(current_prolog_flag(xref,Was)). 
 % ===
 
-locally(Effect,Cm:Call):-
-   module_effect(Effect,M,BareEffect) ->
-     wtl(M,BareEffect,Cm:Call,Cm:setup_call_cleanup).
-
-
+locally(Em:Effect,Cm:Call):- wtl(Em,Effect,Cm:Call,Cm:setup_call_cleanup).
 
 wtl(_,[],Call,_):- !,Call.
 wtl(M,+With,Call,How):- !,wtl(M,With,Call,How).
@@ -152,6 +149,9 @@ wtl(_,$N=VALUE,Call,How):-
 wtl(M,before_after(Before,After,How),Call,How):- !,
      (M:Before -> call(How,true,Call,M:After); Call).
 
+wtl(_,M:With,Call,How):- module_effect_ue(M:With,N,O)-> (O\==M:With),!,wtl(N,O,Call,How).
+wtl(M,With,Call,How):- module_effect_ue(M:With,N,O)-> (O\==With),!,wtl(N,O,Call,How).
+
 wtl(M,Assert,Call,setup_call_cleanup):- !,
    wtl_how(setup_call_cleanup,clause_true(M,Assert),M:asserta(Assert,Ref),Call,M:erase(Ref)).
 
@@ -177,16 +177,32 @@ key_erase(M):- nb_current('$w_tl_e',[REF|Was])->nb_setval('$w_tl_e',Was)->M:eras
 
 
 
+un_user(user:P,P):-!.
+un_user(system:P,P):-!.
+un_user(user:CMDI,CMDI):-!.
+un_user(logicmoo_webbot:CMDI,CMDI):-!.
+un_user(eggdrop:CMDI,CMDI):-!.
+un_user(with_thread_local:P,P):-!.
+un_user(P,P).
+
+module_effect_e(M,H,HH):-
+  module_effect(H,MNew,LH),
+  (MNew == M -> HH=LH ; HH= MNew:LH).
+
+module_effect_ue(MP,M,P):-module_effect(MP,M,PU), un_user(PU,P).
 
 module_effect(+M:Call,M,+Call).
+module_effect(M: +Call,M,+Call).
 module_effect(-M:Call,M,-Call).
+module_effect(M: -Call,M,-Call).
 module_effect(_:op(N,XFY,M:OP),M,op(N,XFY,OP)).
-module_effect(op(N,XFY,M:OP),M,op(N,XFY,OP)).
 module_effect(M:set_prolog_flag(FM:Flag,Value),M,set_prolog_flag(FM:Flag,Value)).
 module_effect(M:set_prolog_flag(Flag,Value),M,set_prolog_flag(M:Flag,Value)).
 %module_effect(FM:set_prolog_flag(Flag,Value),FM,set_prolog_flag(FM:Flag,Value)).
 module_effect($M:N=V,M,$N=V).
-
+module_effect(M:[H|T],M,[HH|TT]):-
+  maplist(module_effect_e(M),[H|T],[HH|TT]).
+  
 module_effect(Assert,Module,ThreadLocal):-
    module_effect_striped(Assert,Module,Stripped),
    to_thread_local_1m(Stripped,Module,ThreadLocal).
@@ -197,7 +213,6 @@ module_effect(Call,Module,UnQCall):- strip_module(Call,Module,UnQCall).
 module_effect_striped(_:((M:H):-B), M,(H:-B)).
 module_effect_striped(M:(H:-B), M,(H:-B)).
 module_effect_striped(((M:H):-B), M,(H:-B)).
-module_effect_striped(M:H,M,M:H).
 module_effect_striped(Call,Module,UnQCall):- strip_module(Call,Module,UnQCall).
 
 
