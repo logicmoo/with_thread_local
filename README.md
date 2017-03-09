@@ -4,7 +4,7 @@ Call a Goal with local assertions
 
 Installation using SWI-Prolog 7.1 or later:
 
-    `?- pack_install('https://github.com/logicmoo/with_thread_local.git'). `
+    `?- pack_install('https://github.com/TeamSPoon/with_thread_local.git'). `
 
 
 Source code available and pull requests accepted at http://github.com/logicmoo/with_thread_local
@@ -14,7 +14,7 @@ Source code available and pull requests accepted at http://github.com/logicmoo/w
  
    Temporally have :Effect (see locally/2)
  
-   But Ensure Non-determism is respected (effect is undone between Redos)
+   But Ensure Non-determism is respected (effect is undone between _each_ Redo)
  
    uses each_call_cleanup/3 instead of setup_call_cleanup/3 (slightly slower?)
  
@@ -28,7 +28,7 @@ Source code available and pull requests accepted at http://github.com/logicmoo/w
       assertion(current_prolog_flag(xref,Was)),fail.
 ```
  
-   locally/2 does not work (it throws instead)
+   locally/2 is little less carefull so it should _not_ work (it throws instead)
 ```prolog
 ?- current_prolog_flag(xref,Was), 
     locally(set_prolog_flag(xref,true),
