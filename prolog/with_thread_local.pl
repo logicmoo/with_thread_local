@@ -50,7 +50,7 @@
 % (slightly slower?)
  
 locally_hide(Fact,Cm:Call):-
-  module_effect((Fact :- !,fail),M,BareEffect) ->
+  notrace(module_effect((Fact :- !,fail),M,BareEffect)) ->
     wtl(M,BareEffect,Cm:Call,Cm:setup_call_cleanup).
 
 %% locally_hide_each( :Fact, :Call) is nondet.
@@ -62,7 +62,7 @@ locally_hide(Fact,Cm:Call):-
 %  uses each_call_cleanup/3 instead of setup_call_cleanup/3
  
 locally_hide_each(Fact,Cm:Call):-  
-  module_effect((Fact :- !,fail),M,BareEffect) ->
+  notrace(module_effect((Fact :- !,fail),M,BareEffect)) ->
     wtl(M,BareEffect,Cm:Call,Cm:each_call_cleanup).
 
 
@@ -149,8 +149,8 @@ wtl(_,$N=VALUE,Call,How):-
 wtl(M,before_after(Before,After,How),Call,How):- !,
      (M:Before -> call(How,true,Call,M:After); Call).
 
-wtl(_,M:With,Call,How):- module_effect_ue(M:With,N,O)-> (O\==M:With),!,wtl(N,O,Call,How).
-wtl(M,With,Call,How):- module_effect_ue(M:With,N,O)-> (O\==With),!,wtl(N,O,Call,How).
+wtl(_,M:With,Call,How):- notrace(module_effect_ue(M:With,N,O))-> (O\==M:With),!,wtl(N,O,Call,How).
+wtl(M,With,Call,How):- notrace(module_effect_ue(M:With,N,O))-> (O\==With),!,wtl(N,O,Call,How).
 
 wtl(M,Assert,Call,setup_call_cleanup):- !,
    wtl_how(setup_call_cleanup,clause_true(M,Assert),M:asserta(Assert,Ref),Call,M:erase(Ref)).
@@ -186,7 +186,7 @@ un_user(with_thread_local:P,P):-!.
 un_user(P,P).
 
 module_effect_e(M,H,HH):-
-  module_effect(H,MNew,LH),
+  notrace(module_effect(H,MNew,LH)),
   (MNew == M -> HH=LH ; HH= MNew:LH).
 
 module_effect_ue(MP,M,P):-module_effect(MP,M,PU), un_user(PU,P).
