@@ -140,7 +140,7 @@ wtl(_,set_prolog_flag(N,VALUE),Call,How):-
   (current_prolog_flag(N,WAS);WAS=unknown_flag_error(set_prolog_flag(N,VALUE))),!,
    wtl_how(How, VALUE==WAS, set_prolog_flag(N,VALUE),Call,set_prolog_flag(N,WAS)).
 
-wtl(_,$N=VALUE,Call,How):- 
+wtl(_,$N=VALUE,Call,How):- !,
   (nb_current(N,WAS) -> 
     (b_setval(N,VALUE),wtl_how(How, VALUE==WAS,b_setval(N,VALUE),Call,b_setval(N,WAS)));
     (b_setval(N,VALUE),wtl_how(How, fail, nb_setval(N,VALUE),Call,nb_delete(N)))).
