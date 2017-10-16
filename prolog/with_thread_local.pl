@@ -14,6 +14,7 @@
 :- module(with_thread_local,
           [ locally/2,
             locally_each/2,
+            locally_tl/2,
             locally_hide/2,
             locally_hide_each/2
           ]).
@@ -29,8 +30,10 @@
         
 :- module_transparent
         check_thread_local_1m/1,
+        each_call_cleanup_local/3,
         to_thread_local_1m/3,
         key_asserta/2,
+        locally_tl/2,
         key_erase/1,
         module_effect/3,
         module_effect_ue/3.
@@ -119,7 +122,13 @@ locally_each(Em:Effect,Cm:Call):- wtl(Em,Effect,Cm:Call,Cm:each_call_cleanup).
 %     assertion(current_prolog_flag(xref,Was)). 
 % ===
 
-locally(Em:Effect,Cm:Call):- wtl(Em,Effect,Cm:Call,Cm:setup_call_cleanup).
+
+% locally(Em:Effect,Cm:Call):- ground(Call),!,wtl(Em,Effect,Cm:Call,Cm:setup_call_cleanup).
+locally(Em:Effect,Cm:Call):- wtl(Em,Effect,Cm:Call,Cm:each_call_cleanup).
+
+locally_tl(Effect,Call):- locally(t_l:Effect,Call).
+
+local_override(N,V):- nb_current(N,V0),!,V0=V.
 
 wtl(_,[],Call,_):- !,Call.
 wtl(M,+With,Call,How):- !,wtl(M,With,Call,How).
@@ -132,18 +141,21 @@ wtl(M,-With,Call,setup_call_cleanup):- !,locally_hide(M:With,Call).
 wtl(M,-With,Call,_How):- !,locally_hide_each(M:With,Call).
 
 
-wtl(M,op(New,XFY,OP),Call,How):- 
+wtl(M,op(New,XFY,OP),Call,_How):- 
   (M:current_op(PrevN,XFY,OP);PrevN=0),!,
-   wtl_how(How, PrevN==New , op(New,XFY,OP), Call, op(PrevN,XFY,OP)).
+   wtl_how(trusted_redo_call_cleanup, PrevN==New , op(New,XFY,OP), Call, op(PrevN,XFY,OP)).
 
-wtl(_,set_prolog_flag(N,VALUE),Call,How):- 
-  (current_prolog_flag(N,WAS);WAS=unknown_flag_error(set_prolog_flag(N,VALUE))),!,
-   wtl_how(How, VALUE==WAS, set_prolog_flag(N,VALUE),Call,set_prolog_flag(N,WAS)).
+wtl(M,set_prolog_flag(N,VALUE),Call,_How):- !,
+  (M:current_prolog_flag(N,WAS);WAS=unknown_flag_error(M:set_prolog_flag(N,VALUE))),!,
+   wtl_how(trusted_redo_call_cleanup, VALUE==WAS, M:set_prolog_flag(N,VALUE),Call,M:set_prolog_flag(N,WAS)).
 
-wtl(_,$N=VALUE,Call,How):- !,
-  (nb_current(N,WAS) -> 
-    (b_setval(N,VALUE),wtl_how(How, VALUE==WAS,b_setval(N,VALUE),Call,b_setval(N,WAS)));
-    (b_setval(N,VALUE),wtl_how(How, fail, nb_setval(N,VALUE),Call,nb_delete(N)))).
+wtl(M,local_override(N,VALUE),Call,_How):- !,  
+   M:(nb_current(N,WAS) -> 
+    call_cleanup((b_setval(N,VALUE),Call,b_setval(N,WAS)),b_setval(N,WAS));
+    call_cleanup((b_setval(N,VALUE),Call,nb_delete(N)),nb_delete(N))).
+
+wtl(M,$N=VALUE,Call,How):- !,
+    wtl(M,local_override(N,VALUE),Call,How).
 
 % undocumented
 wtl(M,before_after(Before,After,How),Call,How):- !,
@@ -156,24 +168,30 @@ wtl(M,Assert,Call,setup_call_cleanup):- !,
    wtl_how(setup_call_cleanup,clause_true(M,Assert),M:asserta(Assert,Ref),Call,M:erase(Ref)).
 
 wtl(M,Assert,Call,How):- 
-   wtl_how(How,clause_true(M,Assert),key_asserta(M,Assert),Call,key_erase(M)).
+   wtl_how(How,clause_true(M,Assert),
+      key_asserta(M,Assert),Call,key_erase(M)).
 
 clause_true(M,(H:-B)):- functor(H,F,A),functor(HH,F,A),M:nth_clause(HH,1,Ref),M:clause(HH,BB,Ref),!,(H:-B)=@=(HH:-BB).
 clause_true(M, H    ):- copy_term(H,HH),M:clause(H,true),!,H=@=HH.
 
 % wtl_how(How, Test , Pre , Call, Post)
 
-wtl_how(setup_call_cleanup, Test , Pre , Call, Post):- !, (Test -> Call ; setup_call_cleanup(Pre , Call, Post)).
+%wtl_how(setup_call_cleanup, Test , Pre , Call, Post):- !, (Test -> Call ; setup_call_cleanup(Pre , Call, Post)).
+%wtl_how(setup_call_cleanup, Test , Pre , Call, Post):- !, (Test -> Call ; setup_call_cleanup(Pre , Call, Post)).
+wtl_how(setup_call_cleanup, _Test , Pre , Call, Post):- !, each_call_cleanup_local(Pre , Call, Post).
 wtl_how(each_call_cleanup, _Test , Pre , Call, Post):- each_call_cleanup(Pre , Call, Post).
 wtl_how(How, Test , Pre , Call, Post):-  Test -> Call ; call(How, Pre , Call, Post).
 
+each_call_cleanup_local(Pre,Call,Post):- 
+  redo_call_cleanup(Pre,Call,Post).
 
 :- nb_setval('$w_tl_e',[]).
+:- initialization(nb_setval('$w_tl_e',[]),restore).
 
-key_asserta(M,Assert):- M:asserta(Assert,REF),
- (nb_current('$w_tl_e',Was)->nb_setval('$w_tl_e',[REF|Was]);nb_setval('$w_tl_e',[REF])).
+key_asserta(M,Assert):- M:asserta(Assert,Ref),
+ (nb_current('$w_tl_e',Was)->nb_linkval('$w_tl_e',[(Ref)|Was]);nb_setval('$w_tl_e',[(Ref)])).
 
-key_erase(M):- nb_current('$w_tl_e',[REF|Was])->nb_setval('$w_tl_e',Was)->M:erase(REF).
+key_erase(M):- notrace(ignore(((nb_current('$w_tl_e',[(Ref)|Was])->(nb_linkval('$w_tl_e',Was)->catch(M:erase(Ref),E,dmsg(E))))))).
 
 
 
