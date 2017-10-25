@@ -16,7 +16,8 @@
             locally_each/2,
             locally_tl/2,
             locally_hide/2,
-            locally_hide_each/2
+            locally_hide_each/2,
+            local_override/2
           ]).
 
 :- meta_predicate
@@ -191,7 +192,7 @@ each_call_cleanup_local(Pre,Call,Post):-
 key_asserta(M,Assert):- M:asserta(Assert,Ref),
  (nb_current('$w_tl_e',Was)->nb_linkval('$w_tl_e',[(Ref)|Was]);nb_setval('$w_tl_e',[(Ref)])).
 
-key_erase(M):- notrace(ignore(((nb_current('$w_tl_e',[(Ref)|Was])->(nb_linkval('$w_tl_e',Was)->catch(M:erase(Ref),E,dmsg(E))))))).
+key_erase(M):- once(ignore(((nb_current('$w_tl_e',[(Ref)|Was])->(nb_linkval('$w_tl_e',Was)->catch(M:erase(Ref),E,dmsg(E))))))).
 
 
 
