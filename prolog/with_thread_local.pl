@@ -150,6 +150,10 @@ wtl(M,set_prolog_flag(N,VALUE),Call,_How):- !,
   (M:current_prolog_flag(N,WAS);WAS=unknown_flag_error(M:set_prolog_flag(N,VALUE))),!,
    wtl_how(trusted_redo_call_cleanup, VALUE==WAS, M:set_prolog_flag(N,VALUE),Call,M:set_prolog_flag(N,WAS)).
 
+wtl(M,current_prolog_flag(N,VALUE),Call,_How):- !,
+  (M:current_prolog_flag(N,WAS);WAS=unknown_flag_error(M:set_prolog_flag(N,VALUE))),!,
+   wtl_how(trusted_redo_call_cleanup, VALUE==WAS, M:set_prolog_flag(N,VALUE),Call,M:set_prolog_flag(N,WAS)).
+
 wtl(M,local_override(N,VALUE),Call,_How):- !,  
    M:(nb_current(N,WAS) -> 
     call_cleanup((b_setval(N,VALUE),Call,b_setval(N,WAS)),b_setval(N,WAS));
@@ -172,7 +176,7 @@ wtl(M,Assert,Call,How):-
    wtl_how(How,clause_true(M,Assert),
       key_asserta(M,Assert),Call,key_erase(M)).
 
-clause_true(M,(H:-B)):- functor(H,F,A),functor(HH,F,A),M:nth_clause(HH,1,Ref),M:clause(HH,BB,Ref),!,(H:-B)=@=(HH:-BB).
+clause_true(M,(H:-B)):- !, functor(H,F,A),functor(HH,F,A),M:nth_clause(HH,1,Ref),M:clause(HH,BB,Ref),!,(H:-B)=@=(HH:-BB).
 clause_true(M, H    ):- copy_term(H,HH),M:clause(H,true),!,H=@=HH.
 
 % wtl_how(How, Test , Pre , Call, Post)
