@@ -263,3 +263,5 @@ check_thread_local_1m(tlbugger:_):-!.
 check_thread_local_1m(lmcache:_):-!.
 check_thread_local_1m(TLHead):- predicate_property(TLHead,(thread_local)).
 
+:- fixup_exports.
+
