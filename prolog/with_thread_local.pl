@@ -42,8 +42,8 @@
 
 :- set_module(class(library)).
 
-
-:- use_module(library(each_call_cleanup)).
+:- use_module(library(no_repeats)).
+:- system:use_module(library(each_call_cleanup)).
 
 
 %% locally_hide_each( :Fact, :Call) is nondet.
