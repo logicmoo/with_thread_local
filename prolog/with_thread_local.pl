@@ -190,7 +190,7 @@ wtl_how(How, Test , Pre , Call, Post):-  Test -> Call ; call(How, Pre , Call, Po
 each_call_cleanup_local(Pre,Call,Post):- 
   redo_call_cleanup(Pre,Call,Post).
 
-:- nb_setval('$w_tl_e',[]).
+:- thread_initialization(nb_setval('$w_tl_e',[])).
 :- initialization(nb_setval('$w_tl_e',[]),restore).
 
 key_asserta(M,Assert):- M:asserta(Assert,Ref),
