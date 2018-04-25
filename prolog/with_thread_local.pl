@@ -27,7 +27,9 @@
         locally_hide_each((:),(:)),
         wtl(+,*,0,3),
         wtl_how(3,0,0,0,0).        
-        
+
+:- use_module(library(logicmoo_util_startup)).
+
         
 :- module_transparent
         check_thread_local_1m/1,
