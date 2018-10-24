@@ -44,7 +44,7 @@
 
 :- set_module(class(library)).
 
-:- use_module(library(no_repeats)).
+%:- use_module(library(no_repeats)).
 :- system:use_module(library(each_call_cleanup)).
 
 
@@ -265,5 +265,8 @@ check_thread_local_1m(tlbugger:_):-!.
 check_thread_local_1m(lmcache:_):-!.
 check_thread_local_1m(TLHead):- predicate_property(TLHead,(thread_local)).
 
+
+:- if(current_predicate(fixup_exports/0)).
 :- fixup_exports.
+:- endif.
 
